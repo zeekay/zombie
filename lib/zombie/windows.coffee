@@ -89,7 +89,7 @@ class Windows
     # closing the current window
     index = @_stack.indexOf(window)
     return unless index >= 0
-  
+
     # Set window's closed property to true
     window.closed = true
 
@@ -166,7 +166,7 @@ class Windows
       javaEnabled:   { value: -> false }
       plugins:       { value: [] }
       vendor:        { value: "Zombie Industries" }
-   
+
     # Add cookies, storage, alerts/confirm, XHR, WebSockets, JSON, Screen, etc
     @_browser._cookies.extend window
     @_browser._storages.extend window
@@ -226,7 +226,7 @@ class Windows
         eventloop.dispatch window, event
 
     # -- Focusing --
-    
+
     # If window goes in/out of focus, notify focused input field
     window.addEventListener "focus", (event)->
       if window.document.activeElement
@@ -239,21 +239,27 @@ class Windows
         onblur.initEvent "blur", false, false
         window.document.activeElement.dispatchEvent onblur
 
-    # -- JavaScript evaluation 
+    # -- JavaScript evaluation
 
     # Evaulate in context of window. This can be called with a script (String) or a function.
-    window._evaluate = (code, filename)->
+    window._evaluate = (code, filename) =>
       try
         Windows.inContext = window # the current window, postMessage needs this
         if typeof code == "string" || code instanceof String
           global.run code, filename
         else
-          code.call global
+          try
+            code.call global
+          catch err
+            error = new Error("Error loading script")
+            @_browser.emit "error", error
+            @_browser.emit "error", err
+            Windows.inContext = null
       finally
         Windows.inContext = null
 
     # Default onerror handler.
-    window.onerror = (event)=>
+    window.onerror = (event) =>
       error = event.error || new Error("Error loading script")
       @_browser.emit "error", error
 
